@@ -6,53 +6,106 @@ KMI UPOL
 
 package main
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var K int = 3
 
 func main() {
 
+	// EXAMPLE1
+	// tested_string := "barbaraabarboraubaru"
+
 	// appropriate alphabet for our example
+	// alphabet := map[rune]bool{
+	// 	'a': true,
+	// 	'b': true,
+	// 	'r': true,
+	// 	'o': true,
+	// 	'u': true,
+	// 	'ε': true,
+	// }
+
+	// ------------
+	// EXAMPLE 2
+	tested_string := "pepapapapapu"
+
 	alphabet := map[rune]bool{
+		'p': true,
+		'e': true,
 		'a': true,
-		'b': true,
-		'r': true,
-		'o': true,
 		'u': true,
+		'ε': true,
 	}
 
-	// example input
-	tested_string := "barbaraabarboraubaru"
-
-	ppm_a(tested_string, K, alphabet)
+	// RUN
+	context_map := ppm_a(tested_string, K, alphabet)
+	print(context_map)
 }
 
-func ppm_a(input string, K int, alphabet map[rune]bool) int {
+func ppm_a(input_string string, K int, alphabet map[rune]bool) map[string]int {
+	// performing PPMA context analysis
 
-	// todo promyslet reprezentaci kontextů (resp. počtu výskytů v daném kontextu)
-	// pravděpodobně vyzkoušet map indexovanou dle kontextu (slice původního stringu input)
-	// aby to nebylo neefektivní... promyslet souvislost se stromem (pokud mám už spočítaný a uložený kontext, můžu to využít)
-
+	input := []rune(input_string)
 	input_length := len(input)
-	var a uint8 = 0
-	symbols_read := 0
 
+	var symbol rune = 0
+	// prepare map of contexts
+	context_map := init_contexts(alphabet)
 
-	for symbols_read < input_length {
-		a = input[symbols_read]
+	for index := 0; index < input_length; index += 1 {
+		symbol = input[index]
+
+		fmt.Printf("SYMBOL READ: %s\n", string(symbol))
 
 		// for correctness (optional)
-		if !is_contained(a, alphabet) {
-			panic(errors.New("Given text contains a symbol that is not contained in the given alphabet"))
+		if !is_contained(symbol, alphabet) {
+			panic(errors.New("given text contains a symbol that is not in the given alphabet"))
 		}
+		
+		fmt.Printf("OUT: ")
 
-		symbols_read += 1
+		// checking occurence in contexts appearing before symbol being read
+		for back_step := min(K, index); back_step >= 0; back_step -= 1 {
+
+			// get recent context from input 
+			context := string(input[index-back_step:index])
+			// check the corresponding occurence count
+			_, not_zero := context_map[string(symbol) + "|" + context]
+
+			// OUTPUT
+			if not_zero {
+				fmt.Printf("<" + string(symbol) + ", " + context + "> ")
+			} else {
+				fmt.Printf("<" + string('ε') + ", " + context + "> ")
+				if context == "" {
+					fmt.Printf("<" + string(symbol) + ", c-1> ")
+				}
+			}
+			// remember new occurence of symbol
+			context_map[string(symbol) + "|" + context] += 1
+
+		}
+		fmt.Printf("\n\n")
 	}
-
-	return 0
+	return context_map
 }
 
-func is_contained(symbol uint8, alphabet map[rune]bool) bool {
-	_, ok := alphabet[rune(symbol)]
+func is_contained(symbol rune, alphabet map[rune]bool) bool {
+	// simply returns if symbol is contained in an alphabet (abstraction tool)
+	_, ok := alphabet[symbol]
 	return ok
+}
+
+func init_contexts(alphabet map[rune]bool) map[string]int {
+	// sets the occurence count in the empty context to 1
+	contexts := map[string]int{}
+
+	for symbol, _ := range alphabet {
+		contexts[string(symbol) + "|c-1"] = 1
+	}
+
+	return contexts
 }
